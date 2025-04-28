@@ -1,0 +1,240 @@
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String               @id @default(cuid())
+  email              String               @unique
+  password           String
+  firstName          String?
+  lastName           String?
+  role               UserRole             @default(USER)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  companyId          String?
+  company            Company?             @relation(fields: [companyId], references: [id])
+  bankAccounts       BankAccount[]
+  transactions       Transaction[]
+  alerts             Alert[]
+  alertConfigurations AlertConfiguration[]
+  sessions           Session[]
+  teamMembers        TeamMember[]
+}
+
+model Company {
+  id           String        @id @default(cuid())
+  name         String
+  taxId        String?
+  address      String?
+  phone        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  users        User[]
+  bankAccounts BankAccount[]
+  teams        Team[]
+  budgets      Budget[]
+}
+
+model BankAccount {
+  id               String          @id @default(cuid())
+  name             String
+  accountNumber    String
+  balance          Float           @default(0)
+  currency         String          @default("EUR")
+  type             AccountType
+  institution      String
+  userId           String
+  companyId        String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  user             User            @relation(fields: [userId], references: [id])
+  company          Company?        @relation(fields: [companyId], references: [id])
+  transactions     Transaction[]
+  reconciliations  Reconciliation[]
+}
+
+model Transaction {
+  id               String            @id @default(cuid())
+  amount           Float
+  description      String?
+  date             DateTime
+  category         String?
+  reference        String?
+  type             TransactionType
+  status           TransactionStatus @default(COMPLETED)
+  bankAccountId    String
+  userId           String
+  reconciliationId String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  bankAccount      BankAccount       @relation(fields: [bankAccountId], references: [id])
+  user             User              @relation(fields: [userId], references: [id])
+  reconciliation   Reconciliation?   @relation(fields: [reconciliationId], references: [id])
+}
+
+model Reconciliation {
+  id             String               @id @default(cuid())
+  date           DateTime
+  note           String?
+  status         ReconciliationStatus @default(PENDING)
+  bankAccountId  String
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  bankAccount    BankAccount          @relation(fields: [bankAccountId], references: [id])
+  transactions   Transaction[]
+}
+
+model Budget {
+  id         String   @id @default(cuid())
+  name       String
+  amount     Float
+  startDate  DateTime
+  endDate    DateTime
+  category   String?
+  companyId  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  company    Company  @relation(fields: [companyId], references: [id])
+}
+
+model Alert {
+  id        String      @id @default(cuid())
+  message   String
+  type      AlertType
+  status    AlertStatus @default(UNREAD)
+  userId    String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  user      User        @relation(fields: [userId], references: [id])
+}
+
+model AlertConfiguration {
+  id        String    @id @default(cuid())
+  type      AlertType
+  threshold Float?
+  active    Boolean   @default(true)
+  userId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+model Team {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  companyId   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  company     Company      @relation(fields: [companyId], references: [id])
+  members     TeamMember[]
+}
+
+model TeamMember {
+  id        String    @id @default(cuid())
+  teamId    String
+  userId    String
+  role      TeamRole  @default(MEMBER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  team      Team      @relation(fields: [teamId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  ipAddress String?
+  userAgent String?
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model FinancialReport {
+  id        String       @id @default(cuid())
+  name      String
+  type      ReportType
+  period    ReportPeriod
+  startDate DateTime
+  endDate   DateTime
+  data      Json         @default("{}")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  ACCOUNTANT
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  CREDIT
+  INVESTMENT
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AlertType {
+  LOW_BALANCE
+  HIGH_EXPENSE
+  UNUSUAL_ACTIVITY
+  BUDGET_LIMIT
+}
+
+enum AlertStatus {
+  READ
+  UNREAD
+}
+
+enum ReconciliationStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum ReportType {
+  INCOME_STATEMENT
+  BALANCE_SHEET
+  CASH_FLOW
+  CUSTOM
+}
+
+enum ReportPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM
+}

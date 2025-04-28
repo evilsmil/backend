@@ -54,15 +54,14 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        userName: user.userName,
         role: user.role,
       },
     };
   }
 
   async register(registerDto: RegisterDto) {
-    const { email, password, firstName, lastName } = registerDto;
+    const { email, password, userName} = registerDto;
 
     // Check if user with this email already exists
     const existingUser = await this.prisma.user.findUnique({
@@ -81,8 +80,7 @@ export class AuthService {
       data: {
         email,
         password: hashedPassword,
-        firstName,
-        lastName,
+        userName,        
       },
     });
 
